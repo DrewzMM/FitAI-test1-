@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FIT·AI – Prototipo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --accent:#C8F135; --dark:#0f0f0f; --card-bg:#1a1a1a; --card2:#242424; --muted:#888; --text:#f0f0f0; --radius:14px; }
+  body { background:var(--dark); color:var(--text); font-family:'DM Sans',sans-serif; }
+  #app { max-width:480px; margin:0 auto; min-height:100vh; }
+  .screen { display:none; padding:24px 20px; }
+  .screen.active { display:block; }
+  .ob-header { text-align:center; padding:32px 0 24px; }
+  .ob-logo { font-family:'Bebas Neue',sans-serif; font-size:42px; color:var(--accent); letter-spacing:2px; line-height:1; }
+  .ob-sub { font-size:13px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+  .step-indicator { display:flex; gap:6px; justify-content:center; margin:20px 0; }
+  .step-dot { width:28px; height:3px; background:var(--card2); border-radius:2px; }
+  .step-dot.active { background:var(--accent); }
+  .step-dot.done { background:#5a7a10; }
+  .step { display:none; }
+  .step.active { display:block; }
+  .step-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+  .step-title { font-family:'Bebas Neue',sans-serif; font-size:28px; margin-bottom:20px; line-height:1.1; }
+  .option-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .option-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+  .opt-card { background:var(--card-bg); border:1.5px solid #2a2a2a; border-radius:var(--radius); padding:16px 12px; cursor:pointer; text-align:center; transition:all .2s; }
+  .opt-card:hover { border-color:#444; }
+  .opt-card.selected { border-color:var(--accent); background:#1e2408; }
+  .opt-icon { font-size:24px; margin-bottom:6px; }
+  .opt-label { font-size:13px; font-weight:500; }
+  .opt-desc { font-size:11px; color:var(--muted); margin-top:3px; }
+  .slider-wrap { margin-bottom:24px; }
+  .slider-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .slider-val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--accent); }
+  .slider-unit { font-size:12px; color:var(--muted); }
+  input[type=range] { width:100%; accent-color:var(--accent); height:4px; cursor:pointer; }
+  .slider-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px; }
+  .next-btn, .complete-btn { width:100%; background:var(--accent); color:#0f0f0f; border:none; border-radius:var(--radius); padding:16px; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:1px; cursor:pointer; margin-top:8px; }
+  .next-btn:hover, .complete-btn:hover { opacity:.88; }
+  .next-btn:disabled { opacity:.3; cursor:not-allowed; }
+  .loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:500px; }
+  .loader-ring { width:64px; height:64px; border:3px solid #2a2a2a; border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:24px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loader-text { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:1px; }
+  .loader-sub { font-size:13px; color:var(--muted); margin-top:8px; text-align:center; max-width:240px; }
+  .dash-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .dash-greeting { font-size:13px; color:var(--muted); }
+  .dash-name { font-family:'Bebas Neue',sans-serif; font-size:28px; line-height:1.1; }
+  .dash-badge { background:var(--card-bg); border:1px solid #2a2a2a; border-radius:8px; padding:6px 12px; font-size:12px; color:var(--muted); }
+  .dash-badge span { color:var(--accent); font-weight:500; }
+  .section-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; }
+  .week-card { background:var(--accent); border-radius:var(--radius); padding:20px; margin-bottom:16px; }
+  .week-tag { font-size:11px; font-weight:500; color:rgba(0,0,0,.5); text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
+  .week-title { font-family:'Bebas Neue',sans-serif; font-size:26px; color:#0f0f0f; line-height:1.1; margin-bottom:12px; }
+  .week-meta { display:flex; gap:8px; flex-wrap:wrap; }
+  .week-pill { background:rgba(0,0,0,.12); border-radius:20px; padding:4px 10px; font-size:12px; color:#0f0f0f; font-weight:500; }
+  .day-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+  .day-card { background:var(--card-bg); border:1px solid #2a2a2a; border-radius:var(--radius); padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+  .day-card:hover { border-color:#3a3a3a; }
+  .day-card.rest { opacity:.5; cursor:default; }
+  .day-num { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .day-name { font-weight:500; font-size:15px; margin-top:2px; }
+  .day-exs { font-size:12px; color:var(--muted); margin-top:2px; }
+  .day-arrow { color:var(--muted); font-size:18px; }
+  .day-card.done .day-arrow { color:var(--accent); }
+  .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+  .stat-box { background:var(--card2); border-radius:10px; padding:12px; text-align:center; }
+  .stat-val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--accent); }
+  .stat-label { font-size:11px; color:var(--muted); margin-top:2px; }
+  .back-btn { background:none; border:none; color:var(--muted); font-size:13px; cursor:pointer; margin-bottom:20px; font-family:'DM Sans',sans-serif; }
+  .session-day-label { font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:4px; }
+  .session-title { font-family:'Bebas Neue',sans-serif; font-size:32px; line-height:1.1; }
+  .session-focus { font-size:13px; color:var(--muted); margin:4px 0 20px; }
+  .ex-list { display:flex; flex-direction:column; gap:12px; margin-bottom:24px; }
+  .ex-card { background:var(--card-bg); border:1px solid #2a2a2a; border-radius:var(--radius); padding:16px; }
+  .ex-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+  .ex-name { font-weight:500; font-size:15px; }
+  .ex-badge { background:#1e2408; color:var(--accent); font-size:11px; padding:3px 8px; border-radius:6px; font-weight:500; }
+  .ex-params { display:flex; gap:8px; flex-wrap:wrap; }
+  .ex-param { background:var(--card2); border-radius:6px; padding:4px 10px; font-size:12px; color:var(--muted); }
+  .ex-param span { color:var(--text); font-weight:500; }
+  .ex-note { font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5; border-top:1px solid #2a2a2a; padding-top:8px; }
+  .ai-tip { background:#1a1e0a; border:1px solid #3a4a10; border-radius:var(--radius); padding:14px 16px; margin-bottom:20px; }
+  .ai-tip-label { font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; }
+  .ai-tip-text { font-size:13px; color:#c8d8a0; line-height:1.6; }
+  .name-input { width:100%; background:var(--card-bg); border:1.5px solid #2a2a2a; color:var(--text); border-radius:var(--radius); padding:14px 16px; font-size:16px; margin-bottom:20px; font-family:'DM Sans',sans-serif; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="screen-onboard" class="screen active">
+    <div class="ob-header">
+      <div class="ob-logo">FIT·AI</div>
+      <div class="ob-sub">Tu entrenador inteligente</div>
+    </div>
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot-0"></div><div class="step-dot" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div><div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <div class="step active" id="step-0">
+      <div class="step-label">Paso 1 de 4</div>
+      <div class="step-title">¿Cuál es tu objetivo principal?</div>
+      <div class="option-grid">
+        <div class="opt-card" data-step="0" data-val="fuerza" onclick="selectOption(this)"><div class="opt-icon">💪</div><div class="opt-label">Fuerza</div><div class="opt-desc">Aumentar masa muscular</div></div>
+        <div class="opt-card" data-step="0" data-val="resistencia" onclick="selectOption(this)"><div class="opt-icon">🏃</div><div class="opt-label">Resistencia</div><div class="opt-desc">Cardio y capacidad aeróbica</div></div>
+        <div class="opt-card" data-step="0" data-val="perdida_peso" onclick="selectOption(this)"><div class="opt-icon">🔥</div><div class="opt-label">Perder peso</div><div class="opt-desc">Composición corporal</div></div>
+        <div class="opt-card" data-step="0" data-val="atletismo" onclick="selectOption(this)"><div class="opt-icon">⚡</div><div class="opt-label">Atletismo</div><div class="opt-desc">Rendimiento deportivo</div></div>
+      </div>
+      <button class="next-btn" id="btn-0" onclick="nextStep(1)" disabled>Continuar</button>
+    </div>
+
+    <div class="step" id="step-1">
+      <div class="step-label">Paso 2 de 4</div>
+      <div class="step-title">¿Cuál es tu nivel actual?</div>
+      <div class="option-grid cols3">
+        <div class="opt-card" data-step="1" data-val="sedentario" onclick="selectOption(this)"><div class="opt-icon">🛋️</div><div class="opt-label">Sedentario</div><div class="opt-desc">Sin actividad</div></div>
+        <div class="opt-card" data-step="1" data-val="intermedio" onclick="selectOption(this)"><div class="opt-icon">🚶</div><div class="opt-label">Intermedio</div><div class="opt-desc">Activo a veces</div></div>
+        <div class="opt-card" data-step="1" data-val="avanzado" onclick="selectOption(this)"><div class="opt-icon">🏆</div><div class="opt-label">Avanzado</div><div class="opt-desc">Entreno regular</div></div>
+      </div>
+      <button class="next-btn" id="btn-1" onclick="nextStep(2)" disabled>Continuar</button>
+    </div>
+
+    <div class="step" id="step-2">
+      <div class="step-label">Paso 3 de 4</div>
+      <div class="step-title">¿Cuántos días por semana puedes entrenar?</div>
+      <div class="slider-wrap">
+        <div class="slider-row"><span class="step-label" style="margin:0">Días / semana</span><span><span class="slider-val" id="days-val">3</span> <span class="slider-unit">días</span></span></div>
+        <input type="range" min="2" max="6" value="3" step="1" oninput="updateSlider('days-val', this.value)">
+        <div class="slider-labels"><span>2 días</span><span>6 días</span></div>
+      </div>
+      <div class="slider-wrap">
+        <div class="slider-row"><span class="step-label" style="margin:0">Duración por sesión</span><span><span class="slider-val" id="dur-val">45</span> <span class="slider-unit">min</span></span></div>
+        <input type="range" min="20" max="90" value="45" step="5" oninput="updateSlider('dur-val', this.value)">
+        <div class="slider-labels"><span>20 min</span><span>90 min</span></div>
+      </div>
+      <button class="next-btn" onclick="nextStep(3)">Continuar</button>
+    </div>
+
+    <div class="step" id="step-3">
+      <div class="step-label">Paso 4 de 4</div>
+      <div class="step-title">¿Cómo te llamamos?</div>
+      <input type="text" id="user-name" class="name-input" placeholder="Tu nombre o apodo" oninput="checkName()">
+      <button class="next-btn" id="btn-3" onclick="generatePlan()" disabled>Generar mi plan con IA →</button>
+    </div>
+  </div>
+
+  <div id="screen-loading" class="screen">
+    <div class="loading-screen">
+      <div class="loader-ring"></div>
+      <div class="loader-text" id="loader-msg">Analizando tu perfil...</div>
+      <div class="loader-sub">La IA está diseñando tu microciclo personalizado</div>
+    </div>
+  </div>
+
+  <div id="screen-dashboard" class="screen">
+    <div class="dash-header">
+      <div><div class="dash-greeting">Hola de nuevo,</div><div class="dash-name" id="dash-name">ATLETA</div></div>
+      <div class="dash-badge">Semana <span>1</span>/4</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="stat-days">3</div><div class="stat-label">Días/semana</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-level">–</div><div class="stat-label">Nivel</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-goal">–</div><div class="stat-label">Objetivo</div></div>
+    </div>
+    <div class="section-title">Tu microciclo actual</div>
+    <div class="week-card">
+      <div class="week-tag">Fase 1 · Adaptación</div>
+      <div class="week-title" id="week-title">Construyendo tu base</div>
+      <div class="week-meta" id="week-meta"></div>
+    </div>
+    <div class="section-title">Sesiones de la semana</div>
+    <div class="day-list" id="day-list"></div>
+  </div>
+
+  <div id="screen-session" class="screen">
+    <button class="back-btn" onclick="show('screen-dashboard')">← Volver</button>
+    <div class="session-day-label" id="sess-day-label"></div>
+    <div class="session-title" id="sess-title"></div>
+    <div class="session-focus" id="sess-focus"></div>
+    <div class="ai-tip"><div class="ai-tip-label">💡 Consejo IA</div><div class="ai-tip-text" id="ai-tip-text"></div></div>
+    <div class="section-title">Ejercicios</div>
+    <div class="ex-list" id="ex-list"></div>
+    <button class="complete-btn" onclick="completeSession()">✓ Sesión completada</button>
+  </div>
+</div>
+
+<script>
+const state = { objetivo:null, nivel:null, dias:3, duracion:45, nombre:'', plan:null, currentSession:null };
+const goalLabels = { fuerza:'Fuerza', resistencia:'Resistencia', perdida_peso:'Peso', atletismo:'Atletismo' };
+const levelLabels = { sedentario:'Básico', intermedio:'Medio', avanzado:'Alto' };
+
+function selectOption(el) {
+  const step = el.dataset.step;
+  document.querySelectorAll('[data-step="' + step + '"]').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  if (step === '0') { state.objetivo = el.dataset.val; document.getElementById('btn-0').disabled = false; }
+  if (step === '1') { state.nivel = el.dataset.val; document.getElementById('btn-1').disabled = false; }
+}
+function updateSlider(id, val) {
+  document.getElementById(id).textContent = val;
+  if (id === 'days-val') state.dias = parseInt(val);
+  if (id === 'dur-val') state.duracion = parseInt(val);
+}
+function checkName() {
+  state.nombre = document.getElementById('user-name').value.trim();
+  document.getElementById('btn-3').disabled = state.nombre.length < 2;
+}
+function nextStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('dot-' + i);
+    d.classList.remove('active', 'done');
+    if (i < n) d.classList.add('done'); else if (i === n) d.classList.add('active');
+  }
+}
+
+const loaderMessages = ['Analizando tu perfil...','Calculando intensidades...','Diseñando periodización...','Generando ejercicios...','Ajustando volumen de carga...','¡Listo!'];
+
+function generatePlan() {
+  show('screen-loading');
+  let i = 0;
+  const interval = setInterval(() => { if (i < loaderMessages.length) document.getElementById('loader-msg').textContent = loaderMessages[i++]; }, 600);
+
+  /* NOTA: esta llamada a la API de Anthropic requiere una API key y un servidor
+     (ver README). Sin ella, la app usa automáticamente el plan de respaldo. */
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: buildPrompt() }] })
+  })
+  .then(r => r.json())
+  .then(data => {
+    clearInterval(interval);
+    const text = data.content.map(c => c.text || '').join('');
+    try { state.plan = JSON.parse(text.replace(/```json|```/g, '').trim()); }
+    catch (e) { state.plan = getFallbackPlan(); }
+    renderDashboard(); show('screen-dashboard');
+  })
+  .catch(() => {
+    clearInterval(interval);
+    state.plan = getFallbackPlan();
+    renderDashboard(); show('screen-dashboard');
+  });
+}
+
+function buildPrompt() {
+  return `Eres un entrenador deportivo experto. Genera un microciclo de 1 semana personalizado en JSON EXACTO (sin texto adicional, sin markdown).
+
+Perfil:
+- Nombre: ${state.nombre}
+- Objetivo: ${state.objetivo}
+- Nivel: ${state.nivel}
+- Días disponibles: ${state.dias}
+- Duración por sesión: ${state.duracion} minutos
+
+Responde SOLO con este JSON:
+{
+  "semana_titulo": "string",
+  "fase": "string",
+  "pills": ["string","string"],
+  "consejo_general": "string",
+  "dias": [
+    {
+      "numero": 1,
+      "nombre": "string",
+      "tipo": "entrenamiento" o "descanso",
+      "enfoque": "string",
+      "consejo_ia": "string",
+      "ejercicios": [
+        { "nombre": "string", "categoria": "string", "series": número o null, "reps": "string o null", "descanso": "string o null", "nota": "string" }
+      ]
+    }
+  ]
+}`;
+}
+
+function getFallbackPlan() {
+  const nombres = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const dias = [];
+  for (let i = 1; i <= 7; i++) {
+    const train = i <= state.dias;
+    dias.push({
+      numero: i, nombre: nombres[i-1], tipo: train ? 'entrenamiento' : 'descanso',
+      enfoque: train ? (state.objetivo === 'fuerza' ? 'Fuerza + Hipertrofia' : 'Cardio + Resistencia') : 'Recuperación activa',
+      consejo_ia: 'Mantén la técnica correcta durante todo el movimiento para evitar lesiones y maximizar resultados.',
+      ejercicios: train ? [
+        { nombre:'Sentadilla', categoria:'Fuerza', series:3, reps:'10-12', descanso:'90 seg', nota:'Espalda recta y rodillas sobre la punta de los pies' },
+        { nombre:'Press de banca', categoria:'Fuerza', series:3, reps:'8-10', descanso:'90 seg', nota:'Escápulas retraídas y pies firmes en el suelo' },
+        { nombre:'Remo con barra', categoria:'Fuerza', series:3, reps:'10-12', descanso:'75 seg', nota:'Codos cerca del cuerpo, contrae dorsales arriba' }
+      ] : []
+    });
+  }
+  return { semana_titulo:'Plan de Entrenamiento Base', fase:'Fase 1 - Adaptación', pills:[state.dias + ' días/sem', state.duracion + ' min'], consejo_general:'¡Consistencia ante todo!', dias };
+}
+
+function renderDashboard() {
+  const p = state.plan;
+  document.getElementById('dash-name').textContent = state.nombre.toUpperCase();
+  document.getElementById('stat-days').textContent = state.dias;
+  document.getElementById('stat-level').textContent = levelLabels[state.nivel] || '–';
+  document.getElementById('stat-goal').textContent = goalLabels[state.objetivo] || '–';
+  document.getElementById('week-title').textContent = p.semana_titulo || 'Microciclo Personalizado';
+  const meta = document.getElementById('week-meta');
+  meta.innerHTML = '';
+  (p.pills || []).forEach(t => { const s = document.createElement('span'); s.className = 'week-pill'; s.textContent = t; meta.appendChild(s); });
+  const list = document.getElementById('day-list');
+  list.innerHTML = '';
+  (p.dias || []).forEach(dia => {
+    const el = document.createElement('div');
+    el.className = 'day-card' + (dia.tipo === 'descanso' ? ' rest' : '');
+    if (dia.tipo !== 'descanso') el.onclick = () => showSession(dia);
+    const n = (dia.ejercicios || []).length;
+    el.innerHTML = '<div><div class="day-num">Día ' + dia.numero + '</div><div class="day-name">' + dia.nombre + '</div><div class="day-exs">' +
+      (dia.tipo === 'descanso' ? 'Descanso / Recuperación' : n + ' ejercicios · ' + dia.enfoque) + '</div></div><div class="day-arrow">' + (dia.tipo === 'descanso' ? '—' : '›') + '</div>';
+    list.appendChild(el);
+  });
+}
+
+function showSession(dia) {
+  state.currentSession = dia;
+  document.getElementById('sess-day-label').textContent = 'Día ' + dia.numero + ' · ' + dia.nombre;
+  document.getElementById('sess-title').textContent = dia.enfoque || 'Entrenamiento';
+  document.getElementById('sess-focus').textContent = state.plan.fase || '';
+  document.getElementById('ai-tip-text').textContent = dia.consejo_ia || 'Recuerda calentar 5-10 minutos antes de comenzar.';
+  const list = document.getElementById('ex-list');
+  list.innerHTML = '';
+  (dia.ejercicios || []).forEach(ex => {
+    const c = document.createElement('div');
+    c.className = 'ex-card';
+    c.innerHTML = '<div class="ex-top"><div class="ex-name">' + ex.nombre + '</div><div class="ex-badge">' + ex.categoria + '</div></div><div class="ex-params">' +
+      (ex.series ? '<div class="ex-param"><span>' + ex.series + '</span> series</div>' : '') +
+      (ex.reps ? '<div class="ex-param"><span>' + ex.reps + '</span> reps</div>' : '') +
+      (ex.descanso ? '<div class="ex-param">Descanso <span>' + ex.descanso + '</span></div>' : '') + '</div>' +
+      (ex.nota ? '<div class="ex-note">📌 ' + ex.nota + '</div>' : '');
+    list.appendChild(c);
+  });
+  show('screen-session');
+}
+
+function completeSession() {
+  const card = [...document.querySelectorAll('.day-card')].find(c => c.querySelector('.day-name').textContent === state.currentSession.nombre);
+  if (card) card.classList.add('done');
+  show('screen-dashboard');
+}
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
